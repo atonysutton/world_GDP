@@ -33,33 +33,38 @@ start_high <- gdp %>%
   group_by(Country_Code) %>%
   filter(min(GDP, na.rm = TRUE) > 12000)
 
-gdp <- gdp %>% anti_join(start_high, by = 'Country_Code')
+midlow <- gdp %>% anti_join(start_high, by = 'Country_Code')
 
 
 ##add rank per year and income level
-gdp <- gdp %>%
+midlow <- midlow %>%
   group_by(year) %>%
   arrange(desc(GDP)) %>%
   mutate(rank = row_number()) %>%
   ungroup()
 
-gdp <- gdp %>% mutate(level = if_else(GDP < 1000, 'low',
+midlow <- midlow %>% mutate(level = if_else(GDP < 1000, 'low',
                                       if_else(GDP < 12000, 'middle', 'high')))
 
-gdp$level <- as.factor(gdp$level)
-gdp$level <- gdp$level %>% fct_relevel(c('high', 'middle', 'low'))
+midlow$level <- as.factor(midlow$level)
+midlow$level <- midlow$level %>% fct_relevel(c('high', 'middle', 'low'))
 
 
 # Plot middle income trap ----
-gdp <- gdp %>% filter(Country_Code != 'VEN')
+midlow <- midlow %>% filter(Country_Code != 'VEN')
   ##Venezuela starts as high income but later falls back to middle, giving an initial high-income dot
 
+ ##isolate US as a reference point
+usa <- gdp %>% filter(Country_Code == 'USA')
+
 p <-
-ggplot(data = gdp %>% filter (!is.na(GDP)),
+ggplot(data = midlow %>% filter (!is.na(GDP)),
        aes(x = rank,
            y = GDP))+
   geom_point(aes(color = level), size = 4, shape = 1)+
   geom_hline(yintercept = 12000, color = 'firebrick')+
+  geom_point(data = usa, aes(x = 30, y = GDP), size = 4, shape = 1, color = 'black')+
+  geom_text(data = usa, label = 'USA', aes(x = 38, y = GDP))+
   scale_x_reverse(name = NULL, labels = NULL, breaks = NULL, minor_breaks = NULL)+
   scale_y_continuous(labels = comma_format())+
   theme_minimal()+
