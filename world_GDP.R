@@ -81,3 +81,54 @@ animate(p, fps = 5, end_pause = 30)
 anim_save('middle_income_trap.gif')
 
  ##outlier at top in late years is Singapore, which is properly coded as starting below the threshold
+
+## repeat with focus on South Korea
+
+ ###add rank for lowest income
+midlow <- midlow %>%
+  group_by(Country_Code) %>%
+  mutate(lowpoint = min(GDP, na.rm = TRUE)) %>%
+  ungroup()
+
+lowpoint <- unique(midlow$lowpoint)
+startpoints <- data.frame(lowpoint) %>% mutate(starting_rank = row_number())
+
+midlow <- midlow %>%
+  left_join(startpoints, by = 'lowpoint')
+
+kor <- midlow %>% filter(Country_Code == 'KOR')  
+
+income_colors <- c(high = 'forestgreen', middle = 'skyblue2', low = 'palevioletred1')
+show_col(income_colors)
+midlow$korea <- 'no'
+kor$korea <- 'yes'
+kor_colors <- c(yes = 'grey50', no = 'white')  ##necessary to avoid filling color in legend
+
+p <-
+  ggplot(data = midlow %>% filter (!is.na(GDP)),
+         aes(x = starting_rank,
+             y = GDP))+
+  geom_point(aes(color = level, fill = korea), size = 4, shape = 1, stroke = 1.5)+
+  scale_color_manual(values = income_colors)+
+  scale_fill_manual(values = kor_colors)+
+  geom_point(data = kor, aes(x = starting_rank, y = GDP, color = level, fill = korea), size = 4, shape = 21, stroke = 1.5)+
+  geom_hline(yintercept = 12000, color = 'firebrick')+
+  geom_text(data = kor, label = 'Korea', aes(x = -9, y = GDP), size = 5)+
+  theme_minimal()+
+  theme(title = element_text(size = 20),
+        axis.title = element_text(size = 18, face = 'bold'),
+        axis.title.y = element_text(margin = margin(r = 8)),
+        axis.text = element_text(size = 16),
+        legend.text = element_text(size = 16))+
+  scale_x_reverse(limits = c(130, -11), name = NULL, labels = NULL, breaks = NULL, minor_breaks = NULL)+
+  scale_y_continuous(labels = comma_format())+
+  ggtitle('Korea Escapes Middle-Income Trap',
+          subtitle = ' GDP per capita in {frame_time}')+
+  labs(color = 'Income\n Level',
+       y = 'GDP Per Capita')+
+  guides(fill = FALSE)+
+  transition_time(year)+
+  ease_aes('cubic-in-out')
+
+animate(p, fps = 2, end_pause = 60)
+anim_save('Korea_escapes_middle_income_trap.gif')
