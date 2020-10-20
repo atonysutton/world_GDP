@@ -91,7 +91,7 @@ midlow <- midlow %>%
   ungroup()
 
 lowpoint <- unique(midlow$lowpoint)
-startpoints <- data.frame(lowpoint) %>% mutate(starting_rank = row_number())
+startpoints <- data.frame(lowpoint) %>% arrange(desc(lowpoint)) %>% mutate(starting_rank = row_number())
 
 midlow <- midlow %>%
   left_join(startpoints, by = 'lowpoint')
@@ -104,6 +104,8 @@ midlow$korea <- 'no'
 kor$korea <- 'yes'
 kor_colors <- c(yes = 'grey50', no = 'white')  ##necessary to avoid filling color in legend
 
+kor_rank <- min(kor$starting_rank)
+
 p <-
   ggplot(data = midlow %>% filter (!is.na(GDP)),
          aes(x = starting_rank,
@@ -113,7 +115,7 @@ p <-
   scale_fill_manual(values = kor_colors)+
   geom_point(data = kor, aes(x = starting_rank, y = GDP, color = level, fill = korea), size = 4, shape = 21, stroke = 1.5)+
   geom_hline(yintercept = 12000, color = 'firebrick')+
-  geom_text(data = kor, label = 'Korea', aes(x = -9, y = GDP), size = 5)+
+  geom_text(data = kor, label = 'Korea', aes(x = (kor_rank + 3), y = GDP), size = 5, hjust = 1)+
   theme_minimal()+
   theme(title = element_text(size = 20),
         axis.title = element_text(size = 18, face = 'bold'),
@@ -130,5 +132,5 @@ p <-
   transition_time(year)+
   ease_aes('cubic-in-out')
 
-animate(p, fps = 2, end_pause = 60)
+animate(p, fps = 2, end_pause = 50)
 anim_save('Korea_escapes_middle_income_trap.gif')
